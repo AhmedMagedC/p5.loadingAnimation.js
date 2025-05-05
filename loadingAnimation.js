@@ -3,7 +3,7 @@
 
 /**
  * this class creates a loading animation that can be displayed while the main sketch is loading.
- * user can customize the loading animation for the background, draw his own spinning logo, and add loading words.
+ * user can customize the loading animation for the background, the cursor animation and loading words animation.
  * @class AnimationLoader
  * @param {p5} pInit - The p5 instance to use for the animation (important for instance mode compatibility).
  */
@@ -28,9 +28,9 @@ class AnimationLoader {
     this.useLogo = useLogo;
     this.startDelay = startDelay;
     this.loadingWords = loadingWords;
-    this.createMouseInsideListener();
-    this.createMouseMoveListener();
-    this.show();
+    this.#createMouseInsideListener();
+    this.#createMouseMoveListener();
+    this.#show();
   }
 
   /**
@@ -39,45 +39,43 @@ class AnimationLoader {
    * @returns {void}
    */
 
-  animation() {
-    this.backgroundAnimation();
-    this.loadingWordsAnimation();
-    this.spinningLogoAnimation();
+  #animation() {
+    this.backgroundAnimation(this.frame);
+    this.loadingWordsAnimation(this.frame);
+    if (this.useLogo && this.isMouseInside && this.hasMouseMoved) {
+      this.pInit.noCursor();
+      this.cursorAnimation(this.pInit.mouseX, this.pInit.mouseY, this.frame);
+    }
   }
 
   /**
    * user can over override this function to change the background animation
-   * the default imolementation is a simple background color change
+   * the default implementation is a simple background color change
+   * @param {number} f - The frame count
    * @returns {void}
    */
-  backgroundAnimation() {
+  backgroundAnimation(f) {
     this.pInit.background(this.bgColor);
   }
 
   /**
    * user can override this function to change the loading words animation
    * the default implementation is a simple wave animation
+   * @param {number} f - The frame count
    * @returns {void}
    */
-  loadingWordsAnimation() {
+  loadingWordsAnimation(f) {
     this.pInit.textAlign(this.pInit.LEFT, this.pInit.TOP);
     const fontSize = 20;
     this.pInit.textSize(fontSize);
     const spacing = fontSize * 1.4;
 
     for (let i = 0; i < this.loadingWords.length; i++) {
-      const wave = this.pInit.sin(this.frame * 0.05 - i * 0.5);
+      const wave = this.pInit.sin(f * 0.05 - i * 0.5);
       const greyValue = this.pInit.map(wave, -1, 1, 50, 140);
 
       this.pInit.fill(greyValue);
       this.pInit.text(`${this.loadingWords[i]}`, 20, 20 + i * spacing);
-    }
-  }
-
-  spinningLogoAnimation() {
-    if (this.useLogo && this.isMouseInside && this.hasMouseMoved) {
-      this.pInit.noCursor();
-      this.drawSpinningLogo(this.pInit.mouseX, this.pInit.mouseY, this.frame);
     }
   }
 
@@ -86,7 +84,7 @@ class AnimationLoader {
    * it recursively calls itself using requestAnimationFrame until the setup() fuunction is done
    * @returns {void}
    */
-  show() {
+  #show() {
     if (this.pInit._setupDone) {
       this.pInit.cursor();
       return;
@@ -97,24 +95,27 @@ class AnimationLoader {
     // Wait a few frames before playing the loading animation
     if (this.frame > this.startDelay) {
       this.pInit.clear();
-      this.animation();
+      this.#animation();
     }
 
     setTimeout(() => {
-      requestAnimationFrame(this.show.bind(this));
+      requestAnimationFrame(this.#show.bind(this));
     }, 1000 / 60);
   }
 
   /**
-   * user can override this function to change the spinning logo animation
+   * user can override this function to change the cursor animation
    * the default implementation is the p5.js spinning logo
+   * @param {number} x - The x position of the cursor
+   * @param {number} y - The y position of the cursor
+   * @param {number} f - The Frame count
    * @returns {void}
    */
-  drawSpinningLogo(x, y, t) {
+  cursorAnimation(x, y, f) {
     this.pInit.push();
     this.pInit.translate(x, y);
     this.pInit.scale(0.75);
-    this.pInit.rotate(this.pInit.radians(t * 6.5));
+    this.pInit.rotate(this.pInit.radians(f * 6.5));
     this.pInit.translate(-14, -14);
     this.pInit.noStroke();
     this.pInit.fill("#ED225D");
@@ -143,7 +144,7 @@ class AnimationLoader {
    * to detect if the mouse is inside the canvas or not
    * @returns {void}
    */
-  createMouseInsideListener() {
+  #createMouseInsideListener() {
     const canvas = this.pInit.canvas;
     canvas.addEventListener("mouseenter", () => (this.isMouseInside = true));
     canvas.addEventListener("mouseleave", () => (this.isMouseInside = false));
@@ -155,7 +156,7 @@ class AnimationLoader {
    * @returns {void}
    */
 
-  createMouseMoveListener() {
+  #createMouseMoveListener() {
     const canvas = this.pInit.canvas;
     canvas.addEventListener(
       "mousemove",
